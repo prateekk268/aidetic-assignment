@@ -28,27 +28,26 @@ const resolvers = {
       try {
         const userId = await authenticate(context);
         if (userId) {
-          const {sort, filter, pagination} = args;
+          const { sort, filter, pagination } = args;
           const { skip, take } = pagination;
           const { field, order } = sort;
           const { searchTerm } = filter;
 
-        
           const movies = await prisma.movie.findMany({
             where: {
               OR: [
                 { movieName: { contains: searchTerm } },
                 { description: { contains: searchTerm } },
               ],
-            },   
+            },
             orderBy: { [field]: order },
             skip,
             take,
           });
-    
+
           return movies;
         }
-      } catch(err) {
+      } catch (err) {
         console.log(err);
         throw new Error(`${err}`);
       }
@@ -58,7 +57,8 @@ const resolvers = {
     movie: async (parent: any, args: any, context: any) => {
       try {
         const { id } = args;
-        if(id == null || id == "undefined") throw new Error("Movie Id is required");
+        if (id == null || id == "undefined")
+          throw new Error("Movie Id is required");
         const userId = await authenticate(context);
         if (userId) {
           const movie = await prisma.movie.findUnique({
@@ -79,15 +79,48 @@ const resolvers = {
     reviews: async (parent: any, args: any, context: any) => {
       try {
         const userId = await authenticate(context);
-        if(userId) {
-          const reviews = await prisma.review.findMany({ where: { movieId: args.movieId }})
+        if (userId) {
+          const reviews = await prisma.review.findMany({
+            where: { movieId: args.movieId },
+          });
           if (!reviews) throw new Error("No reviews exist");
           return reviews;
         }
       } catch (error) {
         console.log(error);
       }
-    }
+    },
+
+    // get all review
+    getAllReview: async (parent: any, args: any, context: any) => {
+      try {
+        const userId = await authenticate(context);
+      
+        if (!userId) throw new Error("User is not logged in");
+
+        const reviewFind = await prisma.review.findMany();
+        console.log(reviewFind);
+        if (reviewFind.length == 0) throw new Error("No Reviewfound");
+        let i = 0;
+        let j = 1;
+        while (j < reviewFind.length) {
+          if (reviewFind[i].userId == userId) {
+            i++;
+            j++;
+          } else if (reviewFind[j].userId == userId) {
+            [reviewFind[i], reviewFind[j]] = [reviewFind[j], reviewFind[i]];
+            j++;
+            i++;
+          } else {
+            j++;
+          }
+        }
+        return reviewFind;
+      } catch (err) {
+        console.log(err);
+        throw new Error(`${err}`);
+      }
+    },
   },
   Mutation: {
     // signup
@@ -98,11 +131,12 @@ const resolvers = {
         if (!userName && !email && !password) {
           throw new Error("Please enter all the required fields");
         }
-        if(userName.trim().length === 0) throw new Error("Enter a username");
-        if(email.trim().length === 0) throw new Error("Enter a email");
-        if(!(/^\w+([\.-]?\w+)@\w+([\.-]?\w+)(\.\w{2,3})+$/.test(email))) throw new Error("Enter a valid email")
-        if(password.trim().length === 0) throw new Error("Enter a password"); 
-      
+        if (userName.trim().length === 0) throw new Error("Enter a username");
+        if (email.trim().length === 0) throw new Error("Enter a email");
+        if (!/^\w+([\.-]?\w+)@\w+([\.-]?\w+)(\.\w{2,3})+$/.test(email))
+          throw new Error("Enter a valid email");
+        if (password.trim().length === 0) throw new Error("Enter a password");
+
         const findUser = await prisma.user.findUnique({
           where: { email: email },
         });
@@ -120,7 +154,7 @@ const resolvers = {
         }
       } catch (err) {
         console.log(err);
-        throw new Error(`${err}`); 
+        throw new Error(`${err}`);
       }
     },
 
@@ -132,10 +166,11 @@ const resolvers = {
         if (!email && !password) {
           throw new Error("Please enter all the required fields");
         }
-        if(email.trim().length === 0) throw new Error("Enter a email");
-        if(!(/^\w+([\.-]?\w+)@\w+([\.-]?\w+)(\.\w{2,3})+$/.test(email))) throw new Error("Enter a valid email")
-        if(password.trim().length === 0) throw new Error("Enter a password"); 
-        
+        if (email.trim().length === 0) throw new Error("Enter a email");
+        if (!/^\w+([\.-]?\w+)@\w+([\.-]?\w+)(\.\w{2,3})+$/.test(email))
+          throw new Error("Enter a valid email");
+        if (password.trim().length === 0) throw new Error("Enter a password");
+
         const user = await prisma.user.findUnique({ where: { email } });
         if (user) {
           const validPassword = bcryptjs.compareSync(password, user.password);
@@ -162,10 +197,13 @@ const resolvers = {
         if (!email && !oldPassword && !newPassword) {
           throw new Error("Please enter all the required fields");
         }
-        if(email.trim().length === 0) throw new Error("Enter a email");
-        if(!(/^\w+([\.-]?\w+)@\w+([\.-]?\w+)(\.\w{2,3})+$/.test(email))) throw new Error("Enter a valid email");
-        if(oldPassword.trim().length === 0) throw new Error("Enter your old password"); 
-        if(newPassword.trim().length === 0) throw new Error("Enter a new password");
+        if (email.trim().length === 0) throw new Error("Enter a email");
+        if (!/^\w+([\.-]?\w+)@\w+([\.-]?\w+)(\.\w{2,3})+$/.test(email))
+          throw new Error("Enter a valid email");
+        if (oldPassword.trim().length === 0)
+          throw new Error("Enter your old password");
+        if (newPassword.trim().length === 0)
+          throw new Error("Enter a new password");
 
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user) {
@@ -205,10 +243,14 @@ const resolvers = {
           if (!movieName && !description && !directorName && !releaseDate) {
             throw new Error("Please enter all the required fields");
           }
-          if (movieName.trim().length === 0) throw new Error("Enter a movie name");
-          if (description.trim().length === 0) throw new Error("Enter a description");
-          if (directorName.trim().length === 0) throw new Error("Enter a director name");
-          if (releaseDate.trim().length === 0) throw new Error("Enter a release date");
+          if (movieName.trim().length === 0)
+            throw new Error("Enter a movie name");
+          if (description.trim().length === 0)
+            throw new Error("Enter a description");
+          if (directorName.trim().length === 0)
+            throw new Error("Enter a director name");
+          if (releaseDate.trim().length === 0)
+            throw new Error("Enter a release date");
 
           const data = {
             movieName,
@@ -234,16 +276,19 @@ const resolvers = {
         if (userId) {
           const { id } = args;
           // validation
-          if(id == null || id == "undefined") throw new Error("Movie Id is required")
+          if (id == null || id == "undefined")
+            throw new Error("Movie Id is required");
           // check movie is avaible in movie table
-          const isMovie = await prisma.movie.findUnique({ where: {id}});
+          const isMovie = await prisma.movie.findUnique({ where: { id } });
           if (isMovie) {
             // check if review exist in related particular movie id;
-            const isReview = await prisma.review.findMany({ where: {movieId: id}});
+            const isReview = await prisma.review.findMany({
+              where: { movieId: id },
+            });
             if (isReview.length > 0) {
               await prisma.review.deleteMany({
-                where: { movieId: id}
-              })
+                where: { movieId: id },
+              });
             }
           } else {
             throw new Error("Movie id is not available");
@@ -271,7 +316,8 @@ const resolvers = {
         if (userId) {
           const { id } = args;
           // validation
-          if(id == null || id == "undefined") throw new Error("Movie Id is required");
+          if (id == null || id == "undefined")
+            throw new Error("Movie Id is required");
 
           const updateMovie = await prisma.movie.update({
             where: { id },
@@ -297,10 +343,16 @@ const resolvers = {
         if (user) {
           const { movieId, rating, comment } = args.review;
           // validation
-          if(movieId == null || movieId == "undefined") throw new Error("Movie Id is required");
-          if(rating == null || rating == "undefined") throw new Error("Rating is required");
-          if(comment == null || comment == "undefined" || comment.trim().length === 0) throw new Error("Comment is required");
-          
+          if (movieId == null || movieId == "undefined")
+            throw new Error("Movie Id is required");
+          if (rating == null || rating == "undefined")
+            throw new Error("Rating is required");
+          if (
+            comment == null ||
+            comment == "undefined" ||
+            comment.trim().length === 0
+          )
+            throw new Error("Comment is required");
 
           const isMovieID = await prisma.movie.findUnique({
             where: { id: movieId },
@@ -312,7 +364,7 @@ const resolvers = {
               comment,
               userId: user,
             };
-            
+
             const newReview = await prisma.review.create({ data });
             return newReview;
           } else {
@@ -333,12 +385,13 @@ const resolvers = {
         const userId = await authenticate(context);
         if (userId) {
           const { id } = args;
-          if(id == null || id == "undefined") throw new Error("Review Id is required");
+          if (id == null || id == "undefined")
+            throw new Error("Review Id is required");
           const updateReview = await prisma.review.update({
             where: { id },
             data: args.review,
           });
-          console.log(updateReview)
+          console.log(updateReview);
           if (updateReview) {
             return updateReview;
           } else {
@@ -357,17 +410,19 @@ const resolvers = {
     deleteReview: async (parent: any, args: any, context: any) => {
       try {
         const userId = await authenticate(context);
-        if(userId) {
+        if (userId) {
           const { id } = args;
-          if(id == null || id == "undefined") throw new Error("Review Id is required");
+          if (id == null || id == "undefined")
+            throw new Error("Review Id is required");
 
-          const reviewFind = await prisma.review.findUnique({where: {id}});
-          if (!reviewFind) throw new Error("Review not found or already deleted");
+          const reviewFind = await prisma.review.findUnique({ where: { id } });
+          if (!reviewFind)
+            throw new Error("Review not found or already deleted");
 
-          const deleteReview = await prisma.review.delete({where: {id}});
-          if(deleteReview) {
+          const deleteReview = await prisma.review.delete({ where: { id } });
+          if (deleteReview) {
             const msg = "Deleted review sucessfully";
-            return {msg}
+            return { msg };
           } else {
             throw new Error("Review not found");
           }
@@ -378,7 +433,7 @@ const resolvers = {
         console.log(err);
         throw new Error(`${err}`);
       }
-    }
+    },
   },
 };
 

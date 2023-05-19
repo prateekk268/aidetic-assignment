@@ -12,8 +12,10 @@ const authenticate = async (context: any) => {
       throw new Error('Token is required');
     }
     const decoded = await verify(authorization, 'JWT_SECRET');
+  
     if(!decoded) throw new Error("Invalid Token");
     const userId = decoded.userId;
+    console.log(userId);
     const user = prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
       throw new Error('User not found');

@@ -87,6 +87,7 @@ type Query {
   moviesQuery(sort: SortInput, filter: FilterInput, pagination: PaginationInput): [Movie!]!
   movie(id: Int!): Movie
   reviews(movieId: Int!): [Review!]!
+  getAllReview: [Review!]!
 }
 
 type Mutation {
